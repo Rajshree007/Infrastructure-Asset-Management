@@ -13,23 +13,15 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 const DEMO_ROLES: Record<string, Partial<User>> = {
-  'Super Admin': { email: 'admin@rbinfragov.demo', role: 'Super Admin', department: 'Administration', district: 'ALL', division: 'ALL', orgScope: 'ALL' },
-  'Chief Engineer': { email: 'chief@rbinfragov.demo', role: 'Chief Engineer', department: 'Engineering', district: 'ALL', division: 'ALL', orgScope: 'ALL' },
-  'Executive Engineer': { email: 'executive@rbinfragov.demo', role: 'Executive Engineer', department: 'Engineering', district: 'Ahmedabad', division: 'Central', orgScope: 'DISTRICT' },
-  'Assistant Engineer': { email: 'engineer@rbinfragov.demo', role: 'Assistant Engineer', department: 'Engineering', district: 'Ahmedabad', division: 'Central', orgScope: 'DIVISION' },
-  'Finance Officer': { email: 'finance@rbinfragov.demo', role: 'Finance Officer', department: 'Finance', district: 'ALL', division: 'ALL', orgScope: 'ALL' },
-  'Auditor': { email: 'auditor@rbinfragov.demo', role: 'Auditor', department: 'Audit', district: 'ALL', division: 'ALL', orgScope: 'ALL' },
-  'Contractor': { email: 'contractor@rbinfragov.demo', role: 'Contractor', department: 'External', district: 'ALL', division: 'ALL', orgScope: 'SELF' },
+  'Admin': { email: 'admin@rbinfragov.demo', role: 'Admin', department: 'Administration', district: 'ALL', division: 'ALL', orgScope: 'ALL' },
+  'Municipal Commissioner': { email: 'commissioner@rbinfragov.demo', role: 'Municipal Commissioner', department: 'City Council', district: 'Surat', division: 'ALL', orgScope: 'DISTRICT' },
+  'Reviewer': { email: 'viewer@rbinfragov.demo', role: 'Reviewer', department: 'Public', district: 'ALL', division: 'ALL', orgScope: 'READONLY' },
 };
 
 const DEMO_NAMES: Record<string, string> = {
-  'Super Admin': 'Suresh Kumar',
-  'Chief Engineer': 'Rajesh Patel',
-  'Executive Engineer': 'Amit Shah',
-  'Assistant Engineer': 'Priya Mehta',
-  'Finance Officer': 'Neha Joshi',
-  'Auditor': 'Vikram Rao',
-  'Contractor': 'Hitesh Contractor',
+  'Admin': 'System Admin',
+  'Municipal Commissioner': 'City Commissioner',
+  'Reviewer': 'Public Viewer',
 };
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {

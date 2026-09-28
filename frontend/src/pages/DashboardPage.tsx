@@ -13,6 +13,7 @@ import api from '../lib/api';
 import { MOCK_KPIS, MOCK_CHARTS, MOCK_ASSETS } from '../data/mockData';
 import { formatCurrency, conditionBadgeClass, priorityBadgeClass } from '../lib/utils';
 import type { DashboardKPIs, SystemInsight, Asset } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 
 // ── KPI Card ───────────────────────────────────────────────────────────────────
 function KPICard({ label, value, sub, icon: Icon, color, link, alert }: {
@@ -43,10 +44,11 @@ const CONDITION_LABELS = ['Excellent', 'Good', 'Fair', 'Poor', 'Critical'];
 const CHART_COLORS = { budget: '#94a3b8', spent: '#1B4F8A', line: '#2563EB' };
 
 export default function DashboardPage() {
+  const { user } = useAuth();
   const [kpis, setKpis] = useState<DashboardKPIs>(MOCK_KPIS);
   const [charts, setCharts] = useState<any>(MOCK_CHARTS);
   const [insights, setInsights] = useState<SystemInsight[]>([]);
-  const [topAssets, setTopAssets] = useState<Asset[]>(MOCK_ASSETS.slice(0, 5).sort((a, b) => (b.priorityScore || 0) - (a.priorityScore || 0)));
+  const [topAssets, setTopAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -65,15 +67,33 @@ export default function DashboardPage() {
       } catch {
         // Use mock data on error
         setInsights([
-          { id: '1', type: 'critical', title: 'Critical Infrastructure Alert', message: '127 critical and high-priority assets require immediate attention.', action: 'View Priority Center', actionLink: '/operations/priority' },
-          { id: '2', type: 'warning', title: 'Budget Utilization Alert', message: 'Division Central has utilized 86% of its annual maintenance allocation.', action: 'View Budget', actionLink: '/finance' },
-          { id: '3', type: 'warning', title: 'Project Schedule Risk', message: 'PRJ-2025-048 (Surat Coastal Highway) is 23 days behind planned milestone.', action: 'View Project', actionLink: '/projects/PRJ-2025-048' },
+          { id: '1', type: 'critical', title: 'Critical Infrastructure Alert', message: 'Critical and high-priority assets require immediate attention.', action: 'View Priority Center', actionLink: '/operations/priority' },
+          { id: '2', type: 'warning', title: 'Budget Utilization Alert', message: 'High utilization of annual maintenance allocation.', action: 'View Budget', actionLink: '/finance' },
+          { id: '3', type: 'warning', title: 'Project Schedule Risk', message: 'Project is behind planned milestone.', action: 'View Project', actionLink: '/projects' },
         ]);
+        
+        let filteredAssets = MOCK_ASSETS;
+        if (user?.role === 'Municipal Commissioner') {
+          filteredAssets = filteredAssets.filter(a => a.district === user.district);
+        }
+        setTopAssets(filteredAssets.slice(0, 5).sort((a, b) => (b.priorityScore || 0) - (a.priorityScore || 0)));
+        
+        // Adjust KPI numbers superficially for city view
+        if (user?.role === 'Municipal Commissioner') {
+          setKpis({
+            ...MOCK_KPIS,
+            totalAssets: Math.floor(MOCK_KPIS.totalAssets / 5),
+            criticalAssets: Math.floor(MOCK_KPIS.criticalAssets / 5),
+            activeProjects: Math.floor(MOCK_KPIS.activeProjects / 5),
+            annualBudget: Math.floor(MOCK_KPIS.annualBudget / 5),
+            budgetSpent: Math.floor(MOCK_KPIS.budgetSpent / 5),
+          });
+        }
       } finally {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [user]);
 
   const conditionData = charts ? [
     { name: 'Excellent', value: charts.conditionDist?.Excellent || 42 },
@@ -96,7 +116,7 @@ export default function DashboardPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Infrastructure Command Center</h1>
           <p className="text-xs font-semibold text-blue-600 mt-1 uppercase tracking-widest">
-            State Roads & Buildings Department — FY 2026-27 Overview
+            {user?.role === 'Municipal Commissioner' ? `${user.district} District Overview` : 'State Roads & Buildings Department — FY 2026-27 Overview'}
           </p>
         </div>
         <div className="flex items-center gap-3">

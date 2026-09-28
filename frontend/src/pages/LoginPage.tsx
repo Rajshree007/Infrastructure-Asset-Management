@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Zap, Lock, Eye, EyeOff, Activity, Cpu, Database } from 'lucide-react';
+import { Shield, Zap, Lock, Eye, EyeOff, Activity, Cpu, Database, Building2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../lib/api';
 import toast from 'react-hot-toast';
@@ -9,6 +9,7 @@ export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [selectedCity, setSelectedCity] = useState('Surat');
 
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,33 +89,63 @@ export default function LoginPage() {
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-900 border border-slate-700 shadow-[0_0_20px_rgba(0,0,0,0.5)] mb-6">
                 <Shield size={28} className="text-blue-700" />
               </div>
-              <h2 className="text-2xl font-bold text-slate-900 mb-2">Admin Access</h2>
-              <p className="text-slate-500 text-sm">Secure biometric / token validation required</p>
+              <h2 className="text-2xl font-bold text-slate-900 mb-2">Access Portal</h2>
+              <p className="text-slate-500 text-sm">Select your authorization level</p>
             </div>
 
-            <form onSubmit={handleAdminLogin} className="space-y-8">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg">
-                  <span className="text-slate-500 text-sm font-medium">Identity</span>
-                  <span className="text-slate-900 text-sm font-mono tracking-wider">admin@rbinfragov.demo</span>
+            <div className="space-y-4">
+              <button
+                onClick={() => {
+                  login({ id: 'demo-1', email: 'admin@rbinfragov.demo', name: 'System Admin', role: 'Admin', orgScope: 'ALL', district: 'ALL', division: 'ALL' }, 'demo-token');
+                  navigate('/dashboard');
+                }}
+                disabled={loading}
+                className="w-full py-4 bg-cyan-500/10 text-blue-700 font-bold tracking-widest uppercase rounded-lg border border-blue-300 hover:bg-cyan-500/20 transition-all flex items-center justify-between px-6"
+              >
+                <div className="flex items-center gap-3"><Shield size={18} /> Admin</div>
+                <span className="text-xs font-mono bg-blue-100 px-2 py-1 rounded text-blue-800">Statewide Access</span>
+              </button>
+
+              <div className="w-full bg-slate-50 border border-slate-300 rounded-lg flex flex-col overflow-hidden">
+                <div className="flex items-center px-4 py-2 border-b border-slate-200 bg-slate-100">
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-widest mr-3">Select City:</span>
+                  <select 
+                    value={selectedCity} 
+                    onChange={e => setSelectedCity(e.target.value)}
+                    className="bg-transparent text-sm font-bold text-slate-700 outline-none cursor-pointer flex-1"
+                  >
+                    <option value="Ahmedabad">Ahmedabad</option>
+                    <option value="Gandhinagar">Gandhinagar</option>
+                    <option value="Vadodara">Vadodara</option>
+                    <option value="Surat">Surat</option>
+                    <option value="Rajkot">Rajkot</option>
+                  </select>
                 </div>
-                <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg">
-                  <span className="text-slate-500 text-sm font-medium">Access Level</span>
-                  <span className="text-blue-700 text-sm font-bold uppercase tracking-widest">Level 5 (Super Admin)</span>
-                </div>
+                <button
+                  onClick={() => {
+                    login({ id: `demo-city-${selectedCity.toLowerCase()}`, email: `${selectedCity.toLowerCase()}@rbinfragov.demo`, name: `${selectedCity} Commissioner`, role: 'Municipal Commissioner', orgScope: 'DISTRICT', district: selectedCity, division: 'ALL' }, 'demo-token');
+                    navigate('/dashboard');
+                  }}
+                  disabled={loading}
+                  className="w-full py-3 hover:bg-slate-100 transition-all flex items-center justify-between px-6"
+                >
+                  <div className="flex items-center gap-3 text-slate-700 font-bold tracking-widest uppercase"><Building2 size={18} /> Municipal Commissioner</div>
+                  <span className="text-xs font-mono bg-slate-200 px-2 py-1 rounded text-slate-600">{selectedCity}</span>
+                </button>
               </div>
 
               <button
-                type="submit"
+                onClick={() => {
+                  login({ id: 'demo-3', email: 'viewer@rbinfragov.demo', name: 'Public Viewer', role: 'Reviewer', orgScope: 'READONLY', district: 'ALL', division: 'ALL' }, 'demo-token');
+                  navigate('/dashboard');
+                }}
                 disabled={loading}
- className="w-full py-4 bg-cyan-500/20 text-blue-700 font-bold tracking-widest uppercase rounded-lg border border-blue-300 hover:bg-cyan-500/30 transition-all focus:outline-none focus:ring-2 focus:ring-cyan-500 flex items-center justify-center gap-3 relative overflow-hidden group"
+                className="w-full py-4 bg-slate-50 text-slate-600 font-bold tracking-widest uppercase rounded-lg border border-slate-200 hover:bg-slate-100 transition-all flex items-center justify-between px-6"
               >
-                <Lock size={18} className="group-hover:hidden" />
-                <Zap size={18} className="hidden group-hover:block" />
-                {loading ? 'Authenticating...' : 'Initialize Session'}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+                <div className="flex items-center gap-3"><Eye size={18} /> Reviewer</div>
+                <span className="text-xs font-mono bg-slate-200 px-2 py-1 rounded text-slate-500">Read Only</span>
               </button>
-            </form>
+            </div>
 
             <div className="mt-8 text-center">
               <p className="text-slate-600 text-[10px] uppercase tracking-widest">

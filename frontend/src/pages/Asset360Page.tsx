@@ -12,6 +12,7 @@ import {
   severityBadgeClass, formatDate, formatCurrency
 } from '../lib/utils';
 import type { Asset, PriorityResult } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 
 // ── Priority Score Ring ────────────────────────────────────────────────────────
 function PriorityRing({ score, label }: { score: number; label: string }) {
@@ -87,6 +88,7 @@ function LifecycleTimeline({ events }: { events: any[] }) {
 }
 
 export default function Asset360Page() {
+  const { user } = useAuth();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [asset, setAsset] = useState<Asset | null>(null);
@@ -185,6 +187,23 @@ export default function Asset360Page() {
     </div>
   );
 
+  // RBAC Access Guard for Municipal Commissioner
+  if (user?.role === 'Municipal Commissioner' && asset.district !== user.district) {
+    return (
+      <div className="p-12 text-center max-w-lg mx-auto">
+        <div className="inline-flex w-16 h-16 rounded-full bg-red-50 text-red-600 items-center justify-center mb-4">
+          <XCircle size={32} />
+        </div>
+        <h2 className="text-2xl font-bold text-slate-900 mb-2">Access Denied</h2>
+        <p className="text-slate-500 mb-6">
+          Your authorization level (Municipal Commissioner) only permits access to assets within <b>{user.district}</b> district. 
+          This asset is located in <b>{asset.district}</b>.
+        </p>
+        <Link to="/assets" className="btn btn-primary">Return to Registry</Link>
+      </div>
+    );
+  }
+
   const defects = asset.defects || [];
   const inspections = asset.inspections || [];
   const workOrders = asset.workOrders || [];
@@ -216,20 +235,22 @@ export default function Asset360Page() {
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <button onClick={() => setShowUpdateModal(true)} className="btn-secondary btn btn-sm">
-              <Activity size={14} />
-              Update Status
-            </button>
-            <Link to={`/operations/inspections/new?assetId=${id}`} className="btn-secondary btn btn-sm">
-              <ClipboardCheck size={14} />
-              New Inspection
-            </Link>
-            <Link to={`/operations/work-orders/new?assetId=${id}`} className="btn-primary btn btn-sm">
-              <Wrench size={14} />
-              Raise Work Order
-            </Link>
-          </div>
+          {user?.role !== 'Reviewer' && (
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <button onClick={() => setShowUpdateModal(true)} className="btn-secondary btn btn-sm">
+                <Activity size={14} />
+                Update Status
+              </button>
+              <Link to={`/operations/inspections/new?assetId=${id}`} className="btn-secondary btn btn-sm">
+                <ClipboardCheck size={14} />
+                New Inspection
+              </Link>
+              <Link to={`/operations/work-orders/new?assetId=${id}`} className="btn-primary btn btn-sm">
+                <Wrench size={14} />
+                Raise Work Order
+              </Link>
+            </div>
+          )}
         </div>
 
         {/* ── Tab Bar ─────────────────────────────────────────── */}

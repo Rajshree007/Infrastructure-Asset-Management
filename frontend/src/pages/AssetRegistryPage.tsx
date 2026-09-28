@@ -5,6 +5,7 @@ import api from '../lib/api';
 import { MOCK_ASSETS } from '../data/mockData';
 import { conditionBadgeClass, priorityBadgeClass, statusBadgeClass, formatDate } from '../lib/utils';
 import type { Asset, PaginatedResponse } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 
 const DISTRICTS = ['All', 'Ahmedabad', 'Gandhinagar', 'Vadodara', 'Surat', 'Rajkot'];
 const TYPES = ['All', 'Road', 'Building', 'Bridge', 'Component'];
@@ -12,23 +13,28 @@ const CONDITIONS = ['All', 'Excellent', 'Good', 'Fair', 'Poor', 'Critical'];
 const STATUSES = ['All', 'Operational', 'Under Maintenance', 'Decommissioned', 'Under Construction'];
 
 export default function AssetRegistryPage() {
+  const { user } = useAuth();
   const [assets, setAssets] = useState<Asset[]>(MOCK_ASSETS);
   const [total, setTotal] = useState(MOCK_ASSETS.length);
   const [totalPages, setTotalPages] = useState(1);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
+  
+  // Enforce district filter if role is Municipal Commissioner
+  const defaultDistrict = user?.role === 'Municipal Commissioner' ? user.district : 'All';
   const [filterType, setFilterType] = useState('All');
-  const [filterDistrict, setFilterDistrict] = useState('All');
+  const [filterDistrict, setFilterDistrict] = useState(defaultDistrict);
   const [filterCondition, setFilterCondition] = useState('All');
   const [filterStatus, setFilterStatus] = useState('All');
 
   const fetchAssets = async () => {
     setLoading(true);
     try {
+      const enforcedDistrict = (user?.role === 'Municipal Commissioner' ? user.district : filterDistrict) || 'All';
       const params = new URLSearchParams({ page: String(page), limit: '20', search });
       if (filterType !== 'All') params.set('type', filterType);
-      if (filterDistrict !== 'All') params.set('district', filterDistrict);
+      if (enforcedDistrict !== 'All') params.set('district', enforcedDistrict);
       if (filterCondition !== 'All') params.set('condition', filterCondition);
       if (filterStatus !== 'All') params.set('status', filterStatus);
       const { data } = await api.get(`/assets?${params}`);
@@ -40,9 +46,10 @@ export default function AssetRegistryPage() {
     } catch {
       // Filter mock data
       let filtered = MOCK_ASSETS;
+      const enforcedDistrict = (user?.role === 'Municipal Commissioner' ? user.district : filterDistrict) || 'All';
       if (search) filtered = filtered.filter(a => a.name.toLowerCase().includes(search.toLowerCase()) || a.id.toLowerCase().includes(search.toLowerCase()));
       if (filterType !== 'All') filtered = filtered.filter(a => a.type === filterType);
-      if (filterDistrict !== 'All') filtered = filtered.filter(a => a.district === filterDistrict);
+      if (enforcedDistrict !== 'All') filtered = filtered.filter(a => a.district === enforcedDistrict);
       if (filterCondition !== 'All') filtered = filtered.filter(a => a.conditionLabel === filterCondition);
       setAssets(filtered);
       setTotal(filtered.length);
@@ -56,7 +63,9 @@ export default function AssetRegistryPage() {
   useEffect(() => { const t = setTimeout(fetchAssets, 400); return () => clearTimeout(t); }, [search]);
 
   const resetFilters = () => {
-    setSearch(''); setFilterType('All'); setFilterDistrict('All'); setFilterCondition('All'); setFilterStatus('All'); setPage(1);
+    setSearch(''); setFilterType('All'); 
+    setFilterDistrict(user?.role === 'Municipal Commissioner' ? user.district : 'All'); 
+    setFilterCondition('All'); setFilterStatus('All'); setPage(1);
   };
 
   return (
@@ -77,10 +86,12 @@ export default function AssetRegistryPage() {
             <Download size={14} />
             Export
           </button>
-          <Link to="/assets/new" className="btn-primary btn btn-sm">
-            <Plus size={14} />
-            Register Asset
-          </Link>
+          {user?.role !== 'Reviewer' && (
+            <Link to="/assets/new" className="btn-primary btn btn-sm">
+              <Plus size={14} />
+              Register Asset
+            </Link>
+          )}
         </div>
       </div>
 
@@ -104,7 +115,12 @@ export default function AssetRegistryPage() {
         </select>
 
         {/* District filter */}
-        <select value={filterDistrict} onChange={e => { setFilterDistrict(e.target.value); setPage(1); }} className="form-select text-sm w-40">
+        <select 
+          value={user?.role === 'Municipal Commissioner' ? user.district : filterDistrict} 
+          onChange={e => { setFilterDistrict(e.target.value); setPage(1); }} 
+          className="form-select text-sm w-40"
+          disabled={user?.role === 'Municipal Commissioner'}
+        >
           {DISTRICTS.map(d => <option key={d}>{d}</option>)}
         </select>
 

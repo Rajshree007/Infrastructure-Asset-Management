@@ -5,6 +5,7 @@ import { MOCK_ASSETS } from '../data/mockData';
 import { conditionBadgeClass, priorityBadgeClass, statusBadgeClass, formatDate } from '../lib/utils';
 import { Link } from 'react-router-dom';
 import type { Asset } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 
 // Dynamic import Leaflet to avoid SSR issues
 let L: any = null;
@@ -31,6 +32,7 @@ const TYPE_ICONS: Record<string, string> = {
 };
 
 export default function GISPage() {
+  const { user } = useAuth();
   const mapRef = useRef<any>(null);
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
@@ -76,15 +78,25 @@ export default function GISPage() {
     setLoading(true);
     try {
       const { data } = await api.get('/gis/assets');
-      if (data.success) setAssets(data.data);
+      if (data.success) {
+        let fetchedAssets = data.data;
+        if (user?.role === 'Municipal Commissioner') {
+          fetchedAssets = fetchedAssets.filter((a: any) => a.district === user.district);
+        }
+        setAssets(fetchedAssets);
+      }
     } catch {
-      setAssets(MOCK_ASSETS.filter(a => a.lat && a.lng));
+      let filtered = MOCK_ASSETS.filter(a => a.lat && a.lng);
+      if (user?.role === 'Municipal Commissioner') {
+        filtered = filtered.filter(a => a.district === user.district);
+      }
+      setAssets(filtered);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { fetchAssets(); }, []);
+  useEffect(() => { fetchAssets(); }, [user]);
 
   // Add markers whenever assets, colorBy, or filters change
   useEffect(() => {

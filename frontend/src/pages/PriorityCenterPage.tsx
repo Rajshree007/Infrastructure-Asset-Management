@@ -8,6 +8,7 @@ import api from '../lib/api';
 import { MOCK_ASSETS } from '../data/mockData';
 import { conditionBadgeClass, priorityBadgeClass, formatCurrency } from '../lib/utils';
 import type { Asset } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 
 const PRIORITY_COLORS: Record<string, string> = { Critical: '#dc2626', High: '#ea580c', Medium: '#d97706', Low: '#16a34a' };
 const PRIORITY_LABELS = ['Critical', 'High', 'Medium', 'Low'];
@@ -34,11 +35,12 @@ function ScoreBar({ score }: { score: number }) {
 }
 
 export default function PriorityCenterPage() {
+  const { user } = useAuth();
   const [assets, setAssets] = useState<Asset[]>([]);
   const [backlog, setBacklog] = useState<any>(null);
   const [filterLabel, setFilterLabel] = useState('All');
   const [filterType, setFilterType] = useState('All');
-  const [filterDistrict, setFilterDistrict] = useState('All');
+  const [filterDistrict, setFilterDistrict] = useState(user?.role === 'Municipal Commissioner' ? user.district : 'All');
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'queue' | 'matrix' | 'backlog'>('queue');
   const [budgetInput, setBudgetInput] = useState('25000000');
@@ -55,14 +57,19 @@ export default function PriorityCenterPage() {
         if (queueRes.data.success) setAssets(queueRes.data.data.data);
         if (backlogRes.data.success) setBacklog(backlogRes.data.data);
       } catch {
-        const sorted = [...MOCK_ASSETS].sort((a, b) => (b.priorityScore || 0) - (a.priorityScore || 0));
+        let sorted = [...MOCK_ASSETS].sort((a, b) => (b.priorityScore || 0) - (a.priorityScore || 0));
+        if (user?.role === 'Municipal Commissioner') {
+          sorted = sorted.filter(a => a.district === user.district);
+          setBacklog({ critical: Math.floor(8400000/5), high: Math.floor(12800000/5), medium: Math.floor(6200000/5), low: Math.floor(2100000/5), totalCount: Math.floor(89/5) });
+        } else {
+          setBacklog({ critical: 8400000, high: 12800000, medium: 6200000, low: 2100000, totalCount: 89 });
+        }
         setAssets(sorted as any);
-        setBacklog({ critical: 8400000, high: 12800000, medium: 6200000, low: 2100000, totalCount: 89 });
       } finally {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [user]);
 
   const runScenario = async () => {
     try {
@@ -175,7 +182,12 @@ export default function PriorityCenterPage() {
               <select value={filterType} onChange={e => setFilterType(e.target.value)} className="form-select text-xs w-28 ml-auto">
                 {['All', 'Road', 'Building', 'Bridge'].map(t => <option key={t}>{t}</option>)}
               </select>
-              <select value={filterDistrict} onChange={e => setFilterDistrict(e.target.value)} className="form-select text-xs w-36">
+              <select 
+                value={user?.role === 'Municipal Commissioner' ? user.district : filterDistrict} 
+                onChange={e => setFilterDistrict(e.target.value)} 
+                className="form-select text-xs w-36"
+                disabled={user?.role === 'Municipal Commissioner'}
+              >
                 {['All', 'Ahmedabad', 'Gandhinagar', 'Vadodara', 'Surat', 'Rajkot'].map(d => <option key={d}>{d}</option>)}
               </select>
             </div>

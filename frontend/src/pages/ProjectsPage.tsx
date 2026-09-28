@@ -5,28 +5,32 @@ import api from '../lib/api';
 import { MOCK_PROJECTS } from '../data/mockData';
 import { formatCurrency, formatDate, statusBadgeClass } from '../lib/utils';
 import type { Project } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function ProjectsPage() {
+  const { user } = useAuth();
   const [projects, setProjects] = useState<Project[]>(MOCK_PROJECTS);
   const [total, setTotal] = useState(MOCK_PROJECTS.length);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
-  const [filterDistrict, setFilterDistrict] = useState('All');
+  const [filterDistrict, setFilterDistrict] = useState(user?.role === 'Municipal Commissioner' ? user.district : 'All');
 
   const fetchProjects = async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams({ limit: '50', search });
+      const enforcedDistrict = (user?.role === 'Municipal Commissioner' ? user.district : filterDistrict) || 'All';
       if (filterStatus !== 'All') params.set('status', filterStatus);
-      if (filterDistrict !== 'All') params.set('district', filterDistrict);
+      if (enforcedDistrict !== 'All') params.set('district', enforcedDistrict);
       const { data } = await api.get(`/projects?${params}`);
       if (data.success) { setProjects(data.data.data); setTotal(data.data.total); }
     } catch {
       let f = MOCK_PROJECTS;
+      const enforcedDistrict = (user?.role === 'Municipal Commissioner' ? user.district : filterDistrict) || 'All';
       if (search) f = f.filter(p => p.name.toLowerCase().includes(search.toLowerCase()) || p.id.toLowerCase().includes(search.toLowerCase()));
       if (filterStatus !== 'All') f = f.filter(p => p.status === filterStatus);
-      if (filterDistrict !== 'All') f = f.filter(p => p.district === filterDistrict);
+      if (enforcedDistrict !== 'All') f = f.filter(p => p.district === enforcedDistrict);
       setProjects(f); setTotal(f.length);
     } finally { setLoading(false); }
   };
@@ -78,7 +82,12 @@ export default function ProjectsPage() {
         <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="form-select text-sm w-44">
           {['All', 'Proposed', 'Approved', 'Tendering', 'UnderConstruction', 'Delayed', 'Completed', 'Closed'].map(s => <option key={s}>{s}</option>)}
         </select>
-        <select value={filterDistrict} onChange={e => setFilterDistrict(e.target.value)} className="form-select text-sm w-40">
+        <select 
+          value={user?.role === 'Municipal Commissioner' ? user.district : filterDistrict} 
+          onChange={e => setFilterDistrict(e.target.value)} 
+          className="form-select text-sm w-40"
+          disabled={user?.role === 'Municipal Commissioner'}
+        >
           {['All', 'Ahmedabad', 'Gandhinagar', 'Vadodara', 'Surat', 'Rajkot'].map(d => <option key={d}>{d}</option>)}
         </select>
       </div>
